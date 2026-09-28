@@ -161,15 +161,17 @@ redacted from every log line.
 Nothing to do for SQLite — the schema is created automatically on first run
 (or manually: `python -c "from database.migrations import init_db; init_db()"`).
 
-**PostgreSQL** (recommended for Railway):
+**PostgreSQL** (recommended for Railway) — the `psycopg` v3 driver ships in
+`requirements.txt`, and `postgres://` / `postgresql://` URLs are normalized
+automatically to `postgresql+psycopg://`:
 
 ```
-DATABASE_URL=postgresql+psycopg://user:pass@host:5432/coursebot
-pip install "psycopg[binary]"
+DATABASE_URL=postgresql://user:pass@host:5432/coursebot   # works as-is
 ```
 
-No code changes needed — portable column types, proper foreign keys, and the
-index allocator uses `SELECT … FOR UPDATE` where the engine supports it.
+An empty `DATABASE_URL` safely falls back to SQLite instead of crashing.
+Portable column types, proper foreign keys, and the index allocator uses
+`SELECT … FOR UPDATE` where the engine supports it.
 
 ## 11. TEST_MODE
 
@@ -212,10 +214,10 @@ Then message your bot: `/start`.
 3. Build/start are auto-detected from `railway.json` / `Procfile`:
    - Build: `pip install -r requirements.txt`
    - Start: `python main.py`
-4. *(Recommended)* Add the **PostgreSQL plugin**; then set
-   `DATABASE_URL=postgresql+psycopg://…` (copy credentials from the plugin;
-   change the scheme to `postgresql+psycopg`) and add `psycopg[binary]` to
-   `requirements.txt`.
+4. *(Recommended)* Add the **PostgreSQL database** to the project, then on
+   the bot service set `DATABASE_URL` to the reference
+   `${{Postgres.DATABASE_URL}}` (the app normalizes the URL scheme and the
+   psycopg driver is already in `requirements.txt`).
 5. **Variables** tab → add: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`,
    `ADMIN_USER_ID`, `TEST_MODE`, `DATABASE_URL` (+ `APP_API_BASE_URL`,
    `APP_CLIENT_ID`, `APP_CLIENT_SECRET` for real mode).

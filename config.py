@@ -27,6 +27,28 @@ def _as_int(value: str | None, default: int = 0) -> int:
         return default
 
 
+DEFAULT_DATABASE_URL = "sqlite:///course_manager.db"
+
+
+def _normalize_db_url(url: str | None) -> str:
+    """Make DATABASE_URL deployment-proof.
+
+    - Empty/blank value (e.g. a broken Railway reference) falls back to the
+      SQLite default instead of crashing ``create_engine('')``.
+    - ``postgres://`` and ``postgresql://`` (what Railway/Heroku provide)
+      are rewritten to ``postgresql+psycopg://`` so SQLAlchemy uses the
+      installed psycopg v3 driver.
+    """
+    url = (url or "").strip()
+    if not url:
+        return DEFAULT_DATABASE_URL
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql://"):]
+    return url
+
+
 @dataclass(frozen=True)
 class Config:
     """Immutable runtime configuration."""
@@ -52,7 +74,7 @@ def load_config() -> Config:
         app_api_base_url=os.getenv("APP_API_BASE_URL", "").strip(),
         app_client_id=os.getenv("APP_CLIENT_ID", "").strip(),
         app_client_secret=os.getenv("APP_CLIENT_SECRET", "").strip(),
-        database_url=os.getenv("DATABASE_URL", "sqlite:///course_manager.db").strip(),
+        database_url=_normalize_db_url(os.getenv("DATABASE_URL")),
         test_mode=_as_bool(os.getenv("TEST_MODE"), True),
         log_level=os.getenv("LOG_LEVEL", "INFO").strip().upper(),
         index_start=_as_int(os.getenv("INDEX_START"), 1),
